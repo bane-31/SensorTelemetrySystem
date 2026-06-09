@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="ConsensusService/ConsensusService.csproj" />
+  <Project Path="IngestionService/IngestionService.csproj" />
+  <Project Path="NotificationService/NotificationService.csproj" />
+  <Project Path="SensorClient/SensorClient.csproj" />
+  <Project Path="SharedContracts/SharedContracts.csproj" />
+</Solution>
