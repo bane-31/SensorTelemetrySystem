@@ -1,4 +1,4 @@
-@IngestionService_HostAddress = http://localhost:5138
+@IngestionService_HostAddress = http://localhost:5128
 
 GET {{IngestionService_HostAddress}}/weatherforecast/
 Accept: application/json

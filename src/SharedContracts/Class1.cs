@@ -1,6 +1,7 @@
-﻿namespace SharedContracts;
-
-public class Class1
+﻿namespace SharedContracts
 {
+    public class Class1
+    {
 
+    }
 }

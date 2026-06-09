@@ -1,16 +1,24 @@
-namespace ConsensusService;
-
-public class Worker(ILogger<Worker> logger) : BackgroundService
+namespace ConsensusService
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public class Worker : BackgroundService
     {
-        while (!stoppingToken.IsCancellationRequested)
+        private readonly ILogger<Worker> _logger;
+
+        public Worker(ILogger<Worker> logger)
         {
-            if (logger.IsEnabled(LogLevel.Information))
+            _logger = logger;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
             {
-                logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                if (_logger.IsEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                }
+                await Task.Delay(1000, stoppingToken);
             }
-            await Task.Delay(1000, stoppingToken);
         }
     }
 }
