@@ -14,8 +14,19 @@ Sistem je dizajniran kao distribuirana mikroservisna arhitektura namenjena visok
 * **Infrastruktura:** Docker, Kubernetes (u pripremi)
 * **Komunikacija:** REST/JSON (interna), SignalR (eksterna)
 
-## Uputstvo za pokretanje
-1. Klonirajte repozitorijum.
-2. Podignite bazu komandom: `docker-compose up -d`.
-3. Migrirajte bazu: `dotnet ef database update` (unutar `IngestionService` foldera).
-4. Pokrenite servise: `dotnet run` (za svaki projekat pojedinačno).
+## Development Setup
+1. **Prerekviziti:**
+   * Instaliran .NET 8 SDK.
+   * Instaliran Docker Desktop.
+   * Instaliran EF Core CLI (`dotnet tool install --global dotnet-ef`).
+
+2. **Baza podataka:**
+   * U korenskom folderu pokrenite: `docker-compose up -d`.
+   * Ovo će podići PostgreSQL instancu na portu 5432.
+
+3. **Migracije:**
+   * Pozicionirajte se u `src/IngestionService/`.
+   * Pokrenite: `dotnet ef database update`.
+
+4. **Konfiguracija:**
+   * U `IngestionService/appsettings.Development.json` proverite da li je Connection String ispravan (obično: `Host=localhost;Database=sensordb;Username=admin;Password=password`).
