@@ -23,21 +23,21 @@ namespace IngestionService.Services
                 throw new KeyNotFoundException("Sensor not found. Device provisioning is required before sending metrics.");
             }
 
+            var now = DateTime.UtcNow;
+
             if (sensor.Quality == SensorQuality.BAD)
             {
                 throw new InvalidOperationException("Bad sensor is not allowed to submit metrics.");
             }
-            if (sensor.IsBlocked && sensor.BlockedUntil.HasValue && sensor.BlockedUntil.Value > DateTime.UtcNow)
+            if (sensor.IsBlocked && sensor.BlockedUntil.HasValue && sensor.BlockedUntil.Value > now)
             {
                 throw new InvalidOperationException("Sensor is temporarily blocked.");
             }
-            if (sensor.IsBlocked && sensor.BlockedUntil.HasValue && sensor.BlockedUntil.Value <= DateTime.UtcNow)
+            if (sensor.IsBlocked && sensor.BlockedUntil.HasValue && sensor.BlockedUntil.Value <= now)
             {
                 sensor.IsBlocked = false;
                 sensor.BlockedUntil = null;
             }
-
-            var now = DateTime.UtcNow;
 
             if (dto.Timestamp > now.AddSeconds(30))
             {

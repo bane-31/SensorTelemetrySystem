@@ -45,20 +45,6 @@ namespace IngestionService.Controllers
                     Error = ex.Message
                 });
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new
-                {
-                    Error = ex.Message
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new
-                {
-                    Error = ex.Message
-                });
-            }
         }
     }
 }
