@@ -44,7 +44,10 @@ var regResponse = await httpClient.PostAsJsonAsync("/api/sensors", registerDto);
 if (!regResponse.IsSuccessStatusCode)
 {
     var error = await regResponse.Content.ReadAsStringAsync();
+    Console.ForegroundColor = ConsoleColor.Red;
     Console.WriteLine($"[ERROR] Failed registration: {error}");
+    Console.ResetColor();
+    return;
 }
 
 Console.WriteLine("[SUCCESS] Sensor is successfuly registered! Initiating telemetry sending...\n");
@@ -123,6 +126,6 @@ while (true)
 
     Console.ResetColor();
 
-    //int delay = random.Next(1000, 10001);
-    //await Task.Delay(delay);
+    int delay = random.Next(1000, 10001);
+    await Task.Delay(delay);
 }

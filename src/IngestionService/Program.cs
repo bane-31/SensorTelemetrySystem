@@ -13,7 +13,7 @@ builder.Services.AddRateLimiter(options =>
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        var cache = context.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+        var cache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
         var sensorIdHeader = context.HttpContext.Request.Headers["X-Sensor-Id"].ToString();
 
         if (Guid.TryParse(sensorIdHeader, out Guid sensorId))
@@ -80,12 +80,12 @@ app.Use(async (context, next) =>
     if (context.Request.Headers.TryGetValue("X-Sensor-Id", out var sensorIdValue) &&
         Guid.TryParse(sensorIdValue, out Guid sensorId))
     {
-        var cache = context.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+        var cache = context.RequestServices.GetRequiredService<IMemoryCache>();
 
         if (cache.TryGetValue($"BlockedSensor_{sensorId}", out _))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await context.Response.WriteAsJsonAsync(new { Error = "Senzor je u karantinu." });
+            await context.Response.WriteAsJsonAsync(new { Error = "Sensor is in quarantine" });
             return;
         }
     }
