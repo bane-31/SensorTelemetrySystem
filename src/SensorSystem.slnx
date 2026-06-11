@@ -1,7 +1,7 @@
 <Solution>
-  <Project Path="ConsensusService/ConsensusService.csproj" />
-  <Project Path="IngestionService/IngestionService.csproj" />
-  <Project Path="NotificationService/NotificationService.csproj" />
-  <Project Path="SensorClient/SensorClient.csproj" />
-  <Project Path="SharedContracts/SharedContracts.csproj" />
+  <Project Path="ConsensusService/ConsensusService.csproj" Id="fb1d1bed-4b22-4dfd-92e3-467bbe9335a0" />
+  <Project Path="IngestionService/IngestionService.csproj" Id="4f809f65-5c35-4547-a717-04b041530e91" />
+  <Project Path="NotificationService/NotificationService.csproj" Id="d6032372-0956-496e-97b5-6ba00bcf14e6" />
+  <Project Path="SensorClient/SensorClient.csproj" Id="c271f1d4-4931-4464-95cc-3c7ff724ac13" />
+  <Project Path="SharedContracts/SharedContracts.csproj" Id="5f13a7fa-3e1b-4acb-9c75-24ad1098845d" />
 </Solution>

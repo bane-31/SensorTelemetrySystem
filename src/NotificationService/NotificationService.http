@@ -1,4 +1,4 @@
-@NotificationService_HostAddress = http://localhost:5084
+@NotificationService_HostAddress = http://localhost:5112
 
 GET {{NotificationService_HostAddress}}/weatherforecast/
 Accept: application/json
