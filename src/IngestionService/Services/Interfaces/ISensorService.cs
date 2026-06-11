@@ -6,5 +6,7 @@ namespace IngestionService.Services.Interfaces
     public interface ISensorService
     {
         Task<Sensor> RegisterSensorAsync(SensorRegisterDTO dto);
+
+        Task BlockSensorAsync(Guid sensorId);
     }
 }

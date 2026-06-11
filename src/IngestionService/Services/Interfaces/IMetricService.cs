@@ -5,6 +5,6 @@ namespace IngestionService.Services.Interfaces
 {
     public interface IMetricService
     {
-        Task<Metric> IngestMetricAsync(MetricSubmissionDTO dto);
+        Task<Metric?> IngestMetricAsync(MetricSubmissionDTO dto);
     }
 }

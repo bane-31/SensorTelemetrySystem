@@ -56,8 +56,11 @@ namespace IngestionService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("BlockedUntil")
+                    b.Property<DateTime?>("BlockedUntil")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsBlocked")
                         .HasColumnType("boolean");

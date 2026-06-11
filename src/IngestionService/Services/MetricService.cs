@@ -15,7 +15,7 @@ namespace IngestionService.Services
             _context = context;
         }
 
-        public async Task<Metric> IngestMetricAsync(MetricSubmissionDTO dto)
+        public async Task<Metric?> IngestMetricAsync(MetricSubmissionDTO dto)
         {
             var sensor = await _context.Sensors.FindAsync(dto.SensorId);
             if (sensor == null)
@@ -27,13 +27,14 @@ namespace IngestionService.Services
             {
                 throw new InvalidOperationException("Bad sensor is not allowed to submit metrics.");
             }
-            if (sensor.IsBlocked && sensor.BlockedUntil > DateTime.UtcNow)
+            if (sensor.IsBlocked && sensor.BlockedUntil.HasValue && sensor.BlockedUntil.Value > DateTime.UtcNow)
             {
                 throw new InvalidOperationException("Sensor is temporarily blocked.");
             }
-            if (sensor.IsBlocked && sensor.BlockedUntil <= DateTime.UtcNow)
+            if (sensor.IsBlocked && sensor.BlockedUntil.HasValue && sensor.BlockedUntil.Value <= DateTime.UtcNow)
             {
                 sensor.IsBlocked = false;
+                sensor.BlockedUntil = null;
             }
 
             var now = DateTime.UtcNow;
@@ -51,6 +52,15 @@ namespace IngestionService.Services
             if (dto.MessageId <= sensor.LastMessageId)
             {
                 throw new InvalidOperationException($"Replay attack detected or out-of-order message. Expected MessageId > {sensor.LastMessageId}, but got {dto.MessageId}.");
+            }
+
+            if (!sensor.IsActive)
+            {
+                sensor.LastSeen = now;
+                sensor.LastMessageId = dto.MessageId;
+                await _context.SaveChangesAsync();
+
+                return null;
             }
 
             var metric = new Metric

@@ -2,7 +2,7 @@ using IngestionService.Middleware;
 using IngestionService.Persistence;
 using IngestionService.Services;
 using IngestionService.Services.Interfaces;
-using Microsoft.AspNetCore.RateLimiting;
+using IngestionService.Workers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System.Threading.RateLimiting;
@@ -26,6 +26,7 @@ builder.Services.AddRateLimiter(options =>
             {
                 sensor.IsBlocked = true;
                 sensor.BlockedUntil = DateTime.UtcNow.AddSeconds(30);
+                sensor.IsActive = false;
                 await dbContext.SaveChangesAsync(cancellationToken);
 
                 cache.Set($"BlockedSensor_{sensorId}", true, TimeSpan.FromSeconds(30));
@@ -69,6 +70,7 @@ builder.Services.AddScoped<IMetricService, MetricService>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+builder.Services.AddHostedService<FaultToleranceWorker>();
 
 
 var app = builder.Build();
