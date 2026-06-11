@@ -22,6 +22,35 @@ namespace IngestionService.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("IngestionService.Entities.ConsensusResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ExcludedSensorsCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IncludedSensorsCount")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime>("WindowEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("WindowStart")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ConsensusResults");
+                });
+
             modelBuilder.Entity("IngestionService.Entities.Metric", b =>
                 {
                     b.Property<Guid>("Id")
@@ -78,6 +107,9 @@ namespace IngestionService.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<int>("Quality")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SuspiciousCount")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");

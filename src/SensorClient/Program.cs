@@ -5,6 +5,12 @@ using SharedContracts.Enums;
 Console.Title = "Sensor Client - Dynamic Node";
 var random = new Random();
 
+//for testing purposes
+var mode = args.Length > 0 ? args[0].ToLower() : "normal";
+bool spamMode = mode == "spam";
+bool outlierMode = mode == "outlier";
+Console.WriteLine($"[MODE] Sensor running in {mode.ToUpper()} mode.");
+
 var sensorId = Guid.NewGuid();
 double minValue = random.Next(-20, 0);
 double maxValue = random.Next(50, 100);
@@ -54,7 +60,16 @@ Console.WriteLine("[SUCCESS] Sensor is successfuly registered! Initiating teleme
 
 while (true)
 {
-    double currentTemp = minValue + (random.NextDouble() * range);
+    double currentTemp;
+
+    if (outlierMode)
+    {
+        currentTemp = minValue + (random.NextDouble() * range) + 100;   // Extreme outlier value
+    }
+    else
+    {
+        currentTemp = minValue + (random.NextDouble() * range);
+    }
 
     int priority = 0;
     if (currentTemp < redThresholdLow || currentTemp > redThresholdHigh) priority = 3;
@@ -126,6 +141,6 @@ while (true)
 
     Console.ResetColor();
 
-    int delay = random.Next(1000, 10001);
+    int delay = spamMode ? 50 : random.Next(1000, 10001);   //50ms in spam mode
     await Task.Delay(delay);
 }

@@ -14,5 +14,7 @@ namespace IngestionService.Persistence
         public DbSet<Sensor> Sensors { get; set; }
 
         public DbSet<Metric> Metrics { get; set; }
+
+        public DbSet<ConsensusResult> ConsensusResults { get; set; }
     }
 }

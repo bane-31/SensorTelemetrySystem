@@ -45,6 +45,13 @@ namespace IngestionService.Controllers
                     Error = ex.Message
                 });
             }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("Bad sensor"))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    Error = ex.Message
+                });
+            }
         }
     }
 }
