@@ -26,6 +26,8 @@ Console.WriteLine($"Threshold: Yellow(<{Math.Round(yellowThresholdLow, 1)} or >{
 using var httpClient = new HttpClient();
 httpClient.BaseAddress = new Uri("http://localhost:5128");
 
+httpClient.DefaultRequestHeaders.Add("X-Sensor-Id", sensorId.ToString());
+
 long messageCounter = 1;
 
 var registerDto = new SensorRegisterDTO
@@ -71,8 +73,33 @@ while (true)
 
         if ((int)response.StatusCode == 429)
         {
-            Console.WriteLine("[LIMIT] Limit reached! Pausing...");
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [LIMIT] Too many request! Pausing telemetry for 5 seconds...");
+            Console.ResetColor();
+
             await Task.Delay(5000);
+            continue;
+        }
+
+        if ((int)response.StatusCode == 403)
+        {
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [BLOCKED] Server has denied access (Quarantine).");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [HIBERNATION] Pausing telemetry for 30 seconds...");
+            Console.ResetColor();
+
+            await Task.Delay(30000);
+            continue;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [Error] Denied from server, status: {response.StatusCode}");
+            Console.ResetColor();
+
+            await Task.Delay(3000);
+            continue;
         }
 
         Console.ForegroundColor = priority switch
@@ -84,15 +111,18 @@ while (true)
         };
 
         Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] MSG: {metricDto.MessageId} | TEMP: {metricDto.Value}°C | PRIORITY: {priority}");
+        Console.ResetColor();
     }
     catch (Exception ex)
     {
         Console.ForegroundColor = ConsoleColor.Gray;
         Console.WriteLine($"Error while sending: {ex.Message}");
+        await Task.Delay(5000);
+        continue;
     }
 
     Console.ResetColor();
 
-    int delay = random.Next(1000, 10001);
-    await Task.Delay(delay);
+    //int delay = random.Next(1000, 10001);
+    //await Task.Delay(delay);
 }
