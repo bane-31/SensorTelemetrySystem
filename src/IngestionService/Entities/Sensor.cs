@@ -19,5 +19,9 @@ namespace IngestionService.Entities
         public long LastMessageId { get; set; }
 
         public ICollection<Metric> Metrics { get; set; } = new List<Metric>();
+   
+        public bool IsBlocked { get; set; }
+
+        public DateTime BlockedUntil { get; set; }
     }
 }

@@ -56,6 +56,12 @@ namespace IngestionService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime>("BlockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("boolean");
+
                     b.Property<long>("LastMessageId")
                         .HasColumnType("bigint");
 
