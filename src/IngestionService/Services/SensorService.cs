@@ -42,7 +42,8 @@ namespace IngestionService.Services
                 LastMessageId = 0,
                 IsActive = shouldBeActive,
                 IsBlocked = false,
-                BlockedUntil = null
+                BlockedUntil = null,
+                PublicKey = dto.PublicKey ?? string.Empty,
             };
 
             _context.Sensors.Add(sensor);
