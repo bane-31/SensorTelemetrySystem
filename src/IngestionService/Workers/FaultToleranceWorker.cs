@@ -1,6 +1,5 @@
 ﻿using IngestionService.Persistence;
 using Microsoft.EntityFrameworkCore;
-using SharedContracts;
 using SharedContracts.Enums;
 
 namespace IngestionService.Workers

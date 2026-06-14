@@ -2,7 +2,6 @@
 using IngestionService.Persistence;
 using IngestionService.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using SharedContracts;
 using SharedContracts.DTOs;
 using SharedContracts.Enums;
 

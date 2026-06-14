@@ -45,16 +45,9 @@ namespace IngestionService.Controllers
                     Error = ex.Message
                 });
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException ex) when (ex.Message.Contains("Bad sensor"))
             {
-                return BadRequest(new
-                {
-                    Error = ex.Message
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new
+                return StatusCode(StatusCodes.Status403Forbidden, new
                 {
                     Error = ex.Message
                 });
