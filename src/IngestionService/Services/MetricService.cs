@@ -2,6 +2,7 @@
 using IngestionService.Persistence;
 using IngestionService.Services.Interfaces;
 using SharedContracts.DTOs;
+using SharedContracts.Enums;
 
 namespace IngestionService.Services
 {
@@ -14,7 +15,7 @@ namespace IngestionService.Services
             _context = context;
         }
 
-        public async Task<Metric> IngestMetricAsync(MetricSubmissionDTO dto)
+        public async Task<Metric?> IngestMetricAsync(MetricSubmissionDTO dto)
         {
             var sensor = await _context.Sensors.FindAsync(dto.SensorId);
             if (sensor == null)
@@ -22,9 +23,44 @@ namespace IngestionService.Services
                 throw new KeyNotFoundException("Sensor not found. Device provisioning is required before sending metrics.");
             }
 
+            if (sensor.Quality == SensorQuality.BAD)
+            {
+                throw new InvalidOperationException("Bad sensor is not allowed to submit metrics.");
+            }
+            if (sensor.IsBlocked && sensor.BlockedUntil.HasValue && sensor.BlockedUntil.Value > DateTime.UtcNow)
+            {
+                throw new InvalidOperationException("Sensor is temporarily blocked.");
+            }
+            if (sensor.IsBlocked && sensor.BlockedUntil.HasValue && sensor.BlockedUntil.Value <= DateTime.UtcNow)
+            {
+                sensor.IsBlocked = false;
+                sensor.BlockedUntil = null;
+            }
+
+            var now = DateTime.UtcNow;
+
+            if (dto.Timestamp > now.AddSeconds(30))
+            {
+                throw new InvalidOperationException("Message timestamp is in the future.");
+            }
+
+            if (dto.Timestamp < now.AddMinutes(-2))
+            {
+                throw new InvalidOperationException("Message timestamp is too old.");
+            }
+
             if (dto.MessageId <= sensor.LastMessageId)
             {
                 throw new InvalidOperationException($"Replay attack detected or out-of-order message. Expected MessageId > {sensor.LastMessageId}, but got {dto.MessageId}.");
+            }
+
+            if (!sensor.IsActive)
+            {
+                sensor.LastSeen = now;
+                sensor.LastMessageId = dto.MessageId;
+                await _context.SaveChangesAsync();
+
+                return null;
             }
 
             var metric = new Metric

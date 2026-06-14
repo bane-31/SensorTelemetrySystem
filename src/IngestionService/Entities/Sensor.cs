@@ -22,6 +22,8 @@ namespace IngestionService.Entities
    
         public bool IsBlocked { get; set; }
 
-        public DateTime BlockedUntil { get; set; }
+        public DateTime? BlockedUntil { get; set; }
+
+        public bool IsActive { get; set; }
     }
 }

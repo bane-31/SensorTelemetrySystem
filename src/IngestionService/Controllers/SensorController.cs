@@ -21,5 +21,12 @@ namespace IngestionService.Controllers
             var sensor = await _sensorService.RegisterSensorAsync(dto);
             return Ok(sensor);
         }
+
+        [HttpPost("{sensorId:guid}/block")]
+        public async Task<IActionResult> BlockSensor(Guid sensorId)
+        {
+            await _sensorService.BlockSensorAsync(sensorId);
+            return Ok(new { Message = $"Sensor {sensorId} blocked for 30 seconds." });
+        }
     }
 }

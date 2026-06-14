@@ -20,8 +20,45 @@ namespace IngestionService.Controllers
         [HttpPost]
         public async Task<IActionResult> IngestMetric([FromBody] MetricSubmissionDTO dto)
         {
-            await _metricService.IngestMetricAsync(dto);
-            return Ok();
+            try
+            {
+                var metric = await _metricService.IngestMetricAsync(dto);
+
+                if (metric == null)
+                {
+                    return Accepted(new
+                    {
+                        Message = "Sensor is registered, but currently inactive. LastSeen updated, metric not stored."
+                    });
+                }
+
+                return Ok(new
+                {
+                    Message = "Metric stored successfully.",
+                    MetricId = metric.Id
+                });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("temporarily blocked"))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    Error = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    Error = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    Error = ex.Message
+                });
+            }
         }
     }
 }
