@@ -8,5 +8,6 @@ namespace SharedContracts.DTOs
         public double MinValue { get; set; }
         public double MaxValue { get; set; }
         public SensorQuality Quality { get; set; }
+        public string? PublicKey { get; set; }
     }
 }

@@ -106,6 +106,10 @@ namespace IngestionService.Migrations
                     b.Property<double>("MinValue")
                         .HasColumnType("double precision");
 
+                    b.Property<string>("PublicKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("Quality")
                         .HasColumnType("integer");
 

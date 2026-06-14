@@ -1,4 +1,5 @@
 ﻿using IngestionService.Services.Interfaces;
+using IngestionService.Services.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SharedContracts.DTOs;
@@ -11,14 +12,21 @@ namespace IngestionService.Controllers
     public class MetricsController : ControllerBase
     {
         private readonly IMetricService _metricService;
+        private readonly SecurePayloadService _securePayloadService;
 
-        public MetricsController(IMetricService metricService)
+        public MetricsController(IMetricService metricService, SecurePayloadService securePayloadService)
         {
             _metricService = metricService;
+            _securePayloadService = securePayloadService;
         }
 
         [HttpPost]
         public async Task<IActionResult> IngestMetric([FromBody] MetricSubmissionDTO dto)
+        {
+            return await HandleMetricAsync(dto);
+        }
+
+        private async Task<IActionResult> HandleMetricAsync(MetricSubmissionDTO dto)
         {
             try
             {
@@ -38,20 +46,28 @@ namespace IngestionService.Controllers
                     MetricId = metric.Id
                 });
             }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("temporarily blocked"))
+            catch (InvalidOperationException ex) when (ex.Message == "Sensor is temporarily blocked.")
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new
                 {
                     Error = ex.Message
                 });
             }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("Bad sensor"))
+            catch (InvalidOperationException ex) when (ex.Message == "Bad sensor is not allowed to submit metrics.")
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new
                 {
                     Error = ex.Message
                 });
             }
+        }
+
+        [HttpPost("secure")]
+        public async Task<IActionResult> IngestSecureMetric([FromBody] SecureEnvelopeDTO envelope)
+        {
+            var dto = await _securePayloadService.UnprotectMetricAsync(envelope);
+
+            return await HandleMetricAsync(dto);
         }
     }
 }

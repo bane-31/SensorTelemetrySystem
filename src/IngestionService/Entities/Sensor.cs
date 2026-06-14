@@ -27,5 +27,7 @@ namespace IngestionService.Entities
         public bool IsActive { get; set; }
 
         public int SuspiciousCount { get; set; }
+
+        public string PublicKey { get; set; } = string.Empty;
     }
 }

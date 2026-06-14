@@ -2,9 +2,11 @@ using IngestionService.Middleware;
 using IngestionService.Persistence;
 using IngestionService.Services;
 using IngestionService.Services.Interfaces;
+using IngestionService.Services.Security;
 using IngestionService.Workers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using SharedContracts.Security;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -71,6 +73,14 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddHostedService<FaultToleranceWorker>();
+
+RsaKeyUtils.EnsureKeyPair(
+    Path.GetFullPath(Path.Combine("keys", "server_private.pem")),
+    Path.GetFullPath(Path.Combine("keys", "server_public.pem")));
+
+builder.Services.AddScoped<SecurePayloadService>();
+
+builder.WebHost.UseUrls("http://0.0.0.0:5128");
 
 
 var app = builder.Build();

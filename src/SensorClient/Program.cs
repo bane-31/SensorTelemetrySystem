@@ -1,6 +1,8 @@
-﻿using System.Net.Http.Json;
-using SharedContracts.DTOs;
+﻿using SharedContracts.DTOs;
 using SharedContracts.Enums;
+using SharedContracts.Security;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
 
 Console.Title = "Sensor Client - Dynamic Node";
 var random = new Random();
@@ -12,6 +14,20 @@ bool outlierMode = mode == "outlier";
 Console.WriteLine($"[MODE] Sensor running in {mode.ToUpper()} mode.");
 
 var sensorId = Guid.NewGuid();
+
+using var sensorRsa = RSA.Create(2048);
+var sensorPublicKeyPem = sensorRsa.ExportSubjectPublicKeyInfoPem();
+var serverPublicKeyPath = Path.GetFullPath(Path.Combine("src", "IngestionService", "keys", "server_public.pem"));
+if (!File.Exists(serverPublicKeyPath))
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine($"[ERROR] Server public key not found at: {serverPublicKeyPath}");
+    Console.WriteLine("[INFO] Start IngestionService first so it can generate server keys.");
+    Console.ResetColor();
+    return;
+}
+using var serverPublicKey = RsaKeyUtils.CreateFromPublicKeyPem(File.ReadAllText(serverPublicKeyPath));
+
 double minValue = random.Next(-20, 0);
 double maxValue = random.Next(50, 100);
 
@@ -29,8 +45,10 @@ Console.WriteLine($"Threshold: Yellow(<{Math.Round(yellowThresholdLow, 1)} or >{
     $" Orange(<{Math.Round(orangeThresholdLow, 1)} or >{Math.Round(orangeThresholdHigh, 1)})," +
     $" Red(<{Math.Round(redThresholdLow, 1)} or >{Math.Round(redThresholdHigh, 1)})");
 
+
+var serverUrl = Environment.GetEnvironmentVariable("INGESTION_URL") ?? "http://localhost:5128";
 using var httpClient = new HttpClient();
-httpClient.BaseAddress = new Uri("http://localhost:5128");
+httpClient.BaseAddress = new Uri(serverUrl);
 
 httpClient.DefaultRequestHeaders.Add("X-Sensor-Id", sensorId.ToString());
 
@@ -41,11 +59,19 @@ var registerDto = new SensorRegisterDTO
     Id = sensorId,
     MinValue = minValue,
     MaxValue = maxValue,
-    Quality = SensorQuality.GOOD
+    Quality = SensorQuality.GOOD,
+    PublicKey = sensorPublicKeyPem
 };
 
 Console.WriteLine($"[REGISTRATION] Attempting sensor registration: {sensorId}");
-var regResponse = await httpClient.PostAsJsonAsync("/api/sensors", registerDto);
+var secureRegisterDto = CryptoEnvelopeService.Protect(
+    registerDto,
+    sensorId,
+    sensorRsa,
+    serverPublicKey,
+    sensorPublicKeyPem);
+
+var regResponse = await httpClient.PostAsJsonAsync("/api/sensors/secure", secureRegisterDto);
 
 if (!regResponse.IsSuccessStatusCode)
 {
@@ -87,7 +113,13 @@ while (true)
 
     try
     {
-        var response = await httpClient.PostAsJsonAsync("/api/metrics", metricDto);
+        var secureMetricDto = CryptoEnvelopeService.Protect(
+            metricDto,
+            sensorId,
+            sensorRsa,
+            serverPublicKey);
+
+        var response = await httpClient.PostAsJsonAsync("/api/metrics/secure", secureMetricDto);
 
         if ((int)response.StatusCode == 429)
         {
