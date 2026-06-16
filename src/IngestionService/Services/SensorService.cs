@@ -4,6 +4,8 @@ using IngestionService.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using SharedContracts.DTOs;
 using SharedContracts.Enums;
+using IngestionService.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace IngestionService.Services
 {
@@ -77,6 +79,14 @@ namespace IngestionService.Services
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.WriteLine($"[BLOCK] Sensor {sensor.Id} manually blocked for 30s.");
             Console.ResetColor();
+        }
+
+        public async Task<List<Sensor>> GetAllSensorsAsync()
+        {
+            return await _context.Sensors
+                .OrderByDescending(s => s.IsActive)
+                .ThenByDescending(s => s.LastSeen)
+                .ToListAsync();
         }
     }
 }

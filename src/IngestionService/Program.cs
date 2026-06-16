@@ -85,6 +85,13 @@ builder.WebHost.UseUrls("http://0.0.0.0:5128");
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    db.Database.Migrate();
+}
+
 app.UseExceptionHandler();
 
 app.Use(async (context, next) =>

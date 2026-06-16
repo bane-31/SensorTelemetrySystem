@@ -2,6 +2,7 @@
 using IngestionService.Services.Security;
 using Microsoft.AspNetCore.Mvc;
 using SharedContracts.DTOs;
+using System.Linq;
 
 namespace IngestionService.Controllers
 {
@@ -43,6 +44,22 @@ namespace IngestionService.Controllers
             {
                 Message = "Secure sensor registration completed."
             });
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetSensors()
+        {
+            var sensors = await _sensorService.GetAllSensorsAsync();
+
+            var result = sensors.Select(s => new
+            {
+                s.Id,
+                s.IsActive,
+                s.IsBlocked,
+                Quality = s.Quality.ToString(),
+                s.LastSeen
+            });
+
+            return Ok(result);
         }
     }
 }

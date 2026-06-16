@@ -3,16 +3,19 @@ using IngestionService.Persistence;
 using IngestionService.Services.Interfaces;
 using SharedContracts.DTOs;
 using SharedContracts.Enums;
+using Microsoft.Extensions.Configuration;
 
 namespace IngestionService.Services
 {
     public class MetricService : IMetricService
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public MetricService(AppDbContext context)
+        public MetricService(AppDbContext context,IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<Metric?> IngestMetricAsync(MetricSubmissionDTO dto)
@@ -103,7 +106,8 @@ namespace IngestionService.Services
             {
                 using (var client = new HttpClient())
                 {
-                    string notificationUrl = "http://localhost:5112/api/alarms/trigger";
+                    string notificationBaseUrl = _configuration["NOTIFICATION_URL"] ?? "http://localhost:5112";
+                    string notificationUrl = $"{notificationBaseUrl.TrimEnd('/')}/api/alarms/trigger";
 
                     var response = await client.PostAsJsonAsync(notificationUrl, dto);
 

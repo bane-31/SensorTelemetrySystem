@@ -17,6 +17,77 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - sensor-network
+
+  ingestion-service:
+    build:
+      context: .
+      dockerfile: src/IngestionService/Dockerfile
+    container_name: sensor-ingestion-service
+    ports:
+      - "5128:5128"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=sensordb;Username=admin;Password=password
+      - NOTIFICATION_URL=http://notification-service:5112
+    volumes:
+    - ./src/IngestionService/keys:/app/keys
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sensor-network
+
+  consensus-service:
+    build:
+      context: .
+      dockerfile: src/ConsensusService/Dockerfile
+    container_name: sensor-consensus-service
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=sensordb;Username=admin;Password=password
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sensor-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: src/NotificationService/Dockerfile
+    container_name: sensor-notification-service
+    ports:
+      - "5112:5112"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sensor-network
+
+  sensor-dashboard:
+    build:
+      context: .
+      dockerfile: src/SensorDashboard/Dockerfile
+    container_name: sensor-operator-dashboard
+    environment:
+      - INGESTION_URL=http://ingestion-service:5128
+      - NOTIFICATION_URL=http://notification-service:5112/alarmHub
+    stdin_open: true
+    tty: true
+    depends_on:
+      ingestion-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    networks:
+      - sensor-network
 
 volumes:
   pgdata:
+
+networks:
+  sensor-network:
+    driver: bridge
