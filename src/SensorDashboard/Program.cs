@@ -34,28 +34,25 @@ namespace SensorDashboard
 
             _hubConnection.On<MetricSubmissionDTO>("ReceiveAlarm", (alarm) =>
             {
-                int currentLeft = Console.CursorLeft;
-                int currentTop = Console.CursorTop;
-
                 Console.ForegroundColor = alarm.Priority switch
                 {
-                    3 => ConsoleColor.Red,          
-                    2 => ConsoleColor.DarkYellow,   
-                    1 => ConsoleColor.Yellow,      
+                    3 => ConsoleColor.Red,
+                    2 => ConsoleColor.DarkYellow,
+                    1 => ConsoleColor.Yellow,
                     _ => ConsoleColor.White
                 };
 
-                Console.WriteLine($"\n\a[ALERT RECEIVED] [{DateTime.Now:HH:mm:ss}] Telemetry boundary breach detected!");
-                Console.WriteLine($"-> Sensor Node ID: {alarm.SensorId}");
-                Console.WriteLine($"-> Triggered Value: {alarm.Value}°C");
-                Console.WriteLine($"-> Assigned Priority: P{alarm.Priority}");
-                Console.ResetColor();
-                Console.Write("\nSelect option: ");
+                Console.WriteLine();
+                Console.WriteLine("--------------------------------------------------");
+                Console.WriteLine($"[ALERT RECEIVED] [{DateTime.Now:HH:mm:ss}]");
+                Console.WriteLine($"Sensor Node ID : {alarm.SensorId}");
+                Console.WriteLine($"Triggered Value: {alarm.Value}°C");
+                Console.WriteLine($"Priority       : P{alarm.Priority}");
+                Console.WriteLine("--------------------------------------------------");
+                Console.WriteLine();
 
-                if (currentLeft >= 0 && currentTop >= 0 && currentTop < Console.BufferHeight)
-                {
-                    Console.SetCursorPosition(currentLeft, currentTop);
-                }
+                Console.ResetColor();
+                PrintMenu();
             });
 
             try
@@ -142,12 +139,16 @@ namespace SensorDashboard
 
                 foreach (var sensor in sensors)
                 {
-                    var id = sensor.GetProperty("Id").GetGuid();
-                    var isActive = sensor.GetProperty("IsActive").GetBoolean();
-                    var isBlocked = sensor.GetProperty("IsBlocked").GetBoolean();
-                    var quality = sensor.GetProperty("Quality").GetString() ?? string.Empty;
+                    var id = sensor.GetProperty("id").GetGuid();
+                    var isActive = sensor.GetProperty("isActive").GetBoolean();
+                    var isBlocked = sensor.GetProperty("isBlocked").GetBoolean();
+                    var quality = sensor.GetProperty("quality").GetString() ?? string.Empty;
 
-                    Console.WriteLine($"{id,-38} | {isActive,-10} | {quality,-10} | {isBlocked,-10}");
+                    Console.WriteLine(
+                        $"{id,-38} | " +
+                        $"{(isActive ? "Active" : "Inactive"),-10} | " +
+                        $"{quality,-10} | " +
+                        $"{(isBlocked ? "Yes" : "No"),-10}");
                 }
             }
             catch (Exception ex)
