@@ -4,8 +4,6 @@ using IngestionService.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using SharedContracts.DTOs;
 using SharedContracts.Enums;
-using IngestionService.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 namespace IngestionService.Services
 {
