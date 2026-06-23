@@ -104,19 +104,16 @@ namespace IngestionService.Services
 
             try
             {
-                using (var client = new HttpClient())
+                string notificationBaseUrl = _configuration["NOTIFICATION_URL"] ?? "http://localhost:5112";
+                string notificationUrl = $"{notificationBaseUrl.TrimEnd('/')}/api/alarms/trigger";
+
+                var response = await _notificationClient.PostAsJsonAsync(notificationUrl, dto);
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    string notificationBaseUrl = _configuration["NOTIFICATION_URL"] ?? "http://localhost:5112";
-                    string notificationUrl = $"{notificationBaseUrl.TrimEnd('/')}/api/alarms/trigger";
-
-                    var response = await client.PostAsJsonAsync(notificationUrl, dto);
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] [NETWORK ERROR] NotificationService returned status code: {response.StatusCode}");
-                        Console.ResetColor();
-                    }
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] [NETWORK ERROR] NotificationService returned status code: {response.StatusCode}");
+                    Console.ResetColor();
                 }
             }
             catch (Exception ex)
