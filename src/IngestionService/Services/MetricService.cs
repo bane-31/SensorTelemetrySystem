@@ -3,16 +3,19 @@ using IngestionService.Persistence;
 using IngestionService.Services.Interfaces;
 using SharedContracts.DTOs;
 using SharedContracts.Enums;
+using Microsoft.Extensions.Configuration;
 
 namespace IngestionService.Services
 {
     public class MetricService : IMetricService
     {
         private readonly AppDbContext _context;
-
-        public MetricService(AppDbContext context)
+        private readonly IConfiguration _configuration;
+        private static readonly HttpClient _notificationClient = new HttpClient();
+        public MetricService(AppDbContext context,IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<Metric?> IngestMetricAsync(MetricSubmissionDTO dto)
@@ -86,21 +89,39 @@ namespace IngestionService.Services
             return metric;
         }
 
-        private Task LogAlarmAsync(MetricSubmissionDTO dto)
+        private async Task LogAlarmAsync(MetricSubmissionDTO dto)
         {
-            return Task.Run(() =>
+            Console.ForegroundColor = dto.Priority switch
             {
-                Console.ForegroundColor = dto.Priority switch
-                {
-                    1 => ConsoleColor.Yellow,
-                    2 => ConsoleColor.DarkYellow,
-                    3 => ConsoleColor.Red,
-                    _ => ConsoleColor.White
-                };
+                1 => ConsoleColor.Yellow,
+                2 => ConsoleColor.DarkYellow,
+                3 => ConsoleColor.Red,
+                _ => ConsoleColor.White
+            };
 
-                Console.WriteLine($"[ALARM] Sensor: {dto.SensorId} | Value: {dto.Value}°C | Priority: {dto.Priority}");
+            Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] [ALARM DETECTED] Sensor: {dto.SensorId} | Value: {dto.Value}°C | Priority: {dto.Priority}");
+            Console.ResetColor();
+
+            try
+            {
+                string notificationBaseUrl = _configuration["NOTIFICATION_URL"] ?? "http://localhost:5112";
+                string notificationUrl = $"{notificationBaseUrl.TrimEnd('/')}/api/alarms/trigger";
+
+                var response = await _notificationClient.PostAsJsonAsync(notificationUrl, dto);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] [NETWORK ERROR] NotificationService returned status code: {response.StatusCode}");
+                    Console.ResetColor();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] [NETWORK CRITICAL] Failed to communicate with NotificationService: {ex.Message}");
                 Console.ResetColor();
-            });
+            }
         }
     }
 }

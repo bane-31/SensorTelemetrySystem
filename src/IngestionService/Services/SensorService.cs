@@ -78,5 +78,13 @@ namespace IngestionService.Services
             Console.WriteLine($"[BLOCK] Sensor {sensor.Id} manually blocked for 30s.");
             Console.ResetColor();
         }
+
+        public async Task<List<Sensor>> GetAllSensorsAsync()
+        {
+            return await _context.Sensors
+                .OrderByDescending(s => s.IsActive)
+                .ThenByDescending(s => s.LastSeen)
+                .ToListAsync();
+        }
     }
 }

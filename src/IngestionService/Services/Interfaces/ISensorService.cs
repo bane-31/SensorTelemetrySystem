@@ -8,5 +8,7 @@ namespace IngestionService.Services.Interfaces
         Task<Sensor> RegisterSensorAsync(SensorRegisterDTO dto);
 
         Task BlockSensorAsync(Guid sensorId);
+
+        Task<List<Sensor>> GetAllSensorsAsync();
     }
 }
