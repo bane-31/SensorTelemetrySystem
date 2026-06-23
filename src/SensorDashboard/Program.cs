@@ -129,7 +129,7 @@ namespace SensorDashboard
                 Console.WriteLine("--------------------------------------------------------------------------------------------------");
 
                 var sensors =
-                    await _httpClient.GetFromJsonAsync<List<dynamic>>
+                    await _httpClient.GetFromJsonAsync<List<System.Text.Json.JsonElement>>
                     (
                         $"{IngestionApiUrl}/sensors"
                     );
@@ -142,7 +142,12 @@ namespace SensorDashboard
 
                 foreach (var sensor in sensors)
                 {
-                    Console.WriteLine(sensor);
+                    var id = sensor.GetProperty("Id").GetGuid();
+                    var isActive = sensor.GetProperty("IsActive").GetBoolean();
+                    var isBlocked = sensor.GetProperty("IsBlocked").GetBoolean();
+                    var quality = sensor.GetProperty("Quality").GetString() ?? string.Empty;
+
+                    Console.WriteLine($"{id,-38} | {isActive,-10} | {quality,-10} | {isBlocked,-10}");
                 }
             }
             catch (Exception ex)
