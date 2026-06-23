@@ -11,7 +11,7 @@ namespace IngestionService.Services
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
-
+        private static readonly HttpClient _notificationClient = new HttpClient();
         public MetricService(AppDbContext context,IConfiguration configuration)
         {
             _context = context;
