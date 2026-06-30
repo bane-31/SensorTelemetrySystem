@@ -10,6 +10,19 @@ Implementiran je `Fixed Window` limiter koji ograničava broj zahteva po senzoru
 * **Detekcija otkaza:** Sistem prati `LastSeen` timestamp za svaki senzor. Senzori koji se nisu oglasili duže od 10 sekundi smatraju se neaktivnim, što pokreće mehanizam zamene.
 
 ## 4. Pouzdana komunikacija (Kriptografija - U izradi)
+Komunikacija između SensorClient aplikacije i IngestionService servisa zaštićena je hibridnom kriptografijom.
+
+Senzor ne šalje direktno običan DTO, već se podaci pakuju u SecureEnvelopeDTO. Sadržaj poruke se enkriptuje pomoću AES-GCM algoritma, dok se AES ključ enkriptuje javnim RSA ključem servera.
+
+Pored enkripcije, senzor digitalno potpisuje payload svojim privatnim RSA ključem. Server nakon dekripcije proverava potpis pomoću javnog ključa senzora koji je sačuvan prilikom registracije.
+
+Na ovaj način se obezbeđuje:
+
+poverljivost poruke, jer sadržaj nije čitljiv bez privatnog ključa servera;
+integritet poruke, jer se izmene payload-a detektuju;
+autentičnost senzora, jer server proverava digitalni potpis senzora.
+
+Prilikom secure registracije senzor šalje svoj javni ključ serveru, dok privatni ključ ostaje samo kod senzora. Server koristi svoj privatni ključ za dekripciju AES ključa, a javni ključ senzora za proveru potpisa.
 
 
 ## 5. Izolacija na mrežnom nivou
