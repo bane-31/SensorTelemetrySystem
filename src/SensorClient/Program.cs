@@ -64,6 +64,7 @@ var registerDto = new SensorRegisterDTO
 };
 
 Console.WriteLine($"[REGISTRATION] Attempting sensor registration: {sensorId}");
+
 var secureRegisterDto = CryptoEnvelopeService.Protect(
     registerDto,
     sensorId,
@@ -71,15 +72,38 @@ var secureRegisterDto = CryptoEnvelopeService.Protect(
     serverPublicKey,
     sensorPublicKeyPem);
 
-var regResponse = await httpClient.PostAsJsonAsync("/api/sensors/secure", secureRegisterDto);
-
-if (!regResponse.IsSuccessStatusCode)
+while (true)
 {
-    var error = await regResponse.Content.ReadAsStringAsync();
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"[ERROR] Failed registration: {error}");
-    Console.ResetColor();
-    return;
+    try
+    {
+        var regResponse = await httpClient.PostAsJsonAsync(
+            "/api/sensors/secure",
+            secureRegisterDto);
+
+        if (regResponse.IsSuccessStatusCode)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("[SUCCESS] Sensor is successfully registered!");
+            Console.ResetColor();
+            break;
+        }
+
+        var error = await regResponse.Content.ReadAsStringAsync();
+
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"[REGISTRATION] Registration failed ({regResponse.StatusCode}). Retrying in 5 seconds...");
+        Console.WriteLine(error);
+        Console.ResetColor();
+    }
+    catch (Exception ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"[REGISTRATION] Ingestion unavailable. Retrying in 5 seconds...");
+        Console.WriteLine(ex.Message);
+        Console.ResetColor();
+    }
+
+    await Task.Delay(5000);
 }
 
 Console.WriteLine("[SUCCESS] Sensor is successfuly registered! Initiating telemetry sending...\n");

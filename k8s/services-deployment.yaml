@@ -12,10 +12,21 @@ spec:
       labels:
         app: ingestion-api
     spec:
+      volumes:
+        - name: rsa-keys
+          secret:
+            secretName: rsa-keys
+
       containers:
         - name: ingestion-api
           image: ingestion-service:latest
           imagePullPolicy: Never
+
+          volumeMounts:
+            - name: rsa-keys
+              mountPath: /app/keys
+              readOnly: true
+
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
@@ -23,8 +34,10 @@ spec:
               value: "Host=postgres-service;Port=5432;Database=sensordb;Username=admin;Password=password"
             - name: NOTIFICATION_URL
               value: "http://notification-service:5112"
+
           ports:
             - containerPort: 5128
+
           resources:
             requests:
               memory: "128Mi"
@@ -32,6 +45,7 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "300m"
+
 ---
 apiVersion: v1
 kind: Service
@@ -45,6 +59,7 @@ spec:
     - protocol: TCP
       port: 5128
       targetPort: 5128
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -64,11 +79,14 @@ spec:
         - name: notification-api
           image: notification-service:latest
           imagePullPolicy: Never
+
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
+
           ports:
             - containerPort: 5112
+
           resources:
             requests:
               memory: "128Mi"
@@ -76,6 +94,7 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "300m"
+
 ---
 apiVersion: v1
 kind: Service
@@ -89,6 +108,7 @@ spec:
     - protocol: TCP
       port: 5112
       targetPort: 5112
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -108,9 +128,11 @@ spec:
         - name: consensus-worker
           image: consensus-service:latest
           imagePullPolicy: Never
+
           env:
             - name: ConnectionStrings__DefaultConnection
               value: "Host=postgres-service;Port=5432;Database=sensordb;Username=admin;Password=password"
+
           resources:
             requests:
               memory: "128Mi"

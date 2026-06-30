@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15
@@ -32,7 +30,7 @@ services:
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=sensordb;Username=admin;Password=password
       - NOTIFICATION_URL=http://notification-service:5112
     volumes:
-    - ./src/IngestionService/keys:/app/keys
+      - ./src/IngestionService/keys:/app/keys
     depends_on:
       db:
         condition: service_healthy
@@ -81,6 +79,81 @@ services:
       ingestion-service:
         condition: service_started
       notification-service:
+        condition: service_started
+    networks:
+      - sensor-network
+
+  sensor-1:
+    build:
+      context: .
+      dockerfile: src/SensorClient/Dockerfile
+    container_name: sensor-1
+    environment:
+      - INGESTION_URL=http://ingestion-service:5128
+    volumes:
+    - ./src/IngestionService/keys:/app/src/IngestionService/keys
+    depends_on:
+      ingestion-service:
+        condition: service_started
+    networks:
+      - sensor-network
+
+  sensor-2:
+    build:
+      context: .
+      dockerfile: src/SensorClient/Dockerfile
+    container_name: sensor-2
+    environment:
+      - INGESTION_URL=http://ingestion-service:5128
+    volumes:
+      - ./src/IngestionService/keys:/app/src/IngestionService/keys
+    depends_on:
+      ingestion-service:
+        condition: service_started
+    networks:
+      - sensor-network
+
+  sensor-3:
+    build:
+      context: .
+      dockerfile: src/SensorClient/Dockerfile
+    container_name: sensor-3
+    environment:
+      - INGESTION_URL=http://ingestion-service:5128
+    volumes:
+      - ./src/IngestionService/keys:/app/src/IngestionService/keys
+    depends_on:
+      ingestion-service:
+        condition: service_started
+    networks:
+      - sensor-network
+
+  sensor-4:
+    build:
+      context: .
+      dockerfile: src/SensorClient/Dockerfile
+    container_name: sensor-4
+    environment:
+      - INGESTION_URL=http://ingestion-service:5128
+    volumes:
+      - ./src/IngestionService/keys:/app/src/IngestionService/keys
+    depends_on:
+      ingestion-service:
+        condition: service_started
+    networks:
+      - sensor-network
+
+  sensor-5:
+    build:
+      context: .
+      dockerfile: src/SensorClient/Dockerfile
+    container_name: sensor-5
+    environment:
+      - INGESTION_URL=http://ingestion-service:5128
+    volumes:
+      - ./src/IngestionService/keys:/app/src/IngestionService/keys
+    depends_on:
+      ingestion-service:
         condition: service_started
     networks:
       - sensor-network
