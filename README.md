@@ -252,7 +252,6 @@ The named PostgreSQL volume remains available for subsequent runs unless explici
 │   └── SensorSystem.slnx
 ├── docs/
 │   └── images/                # Screenshots of system operation
-├── SECURITY.md
 └── README.md
 ```
 
