@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-client
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: sensor-client
+  template:
+    metadata:
+      labels:
+        app: sensor-client
+    spec:
+      containers:
+        - name: sensor-client
+          image: sensortelemetrysystem-sensor-1:latest
+          imagePullPolicy: Never
+          env:
+            - name: INGESTION_URL
+              value: "http://ingestion-service:5128"

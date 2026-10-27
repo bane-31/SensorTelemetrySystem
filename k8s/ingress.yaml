@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sensor-system-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/websocket-services: "notification-service"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ingestion-service
+                port:
+                  number: 5128
+          - path: /alarmHub
+            pathType: Prefix
+            backend:
+              service:
+                name: notification-service
+                port:
+                  number: 5112

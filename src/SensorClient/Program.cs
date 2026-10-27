@@ -1,1 +1,202 @@
-﻿Console.WriteLine("Hello, World!");
+﻿using SharedContracts.DTOs;
+using SharedContracts.Enums;
+using SharedContracts.Security;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
+
+Console.Title = "Sensor Client - Dynamic Node";
+var random = new Random();
+
+//for testing purposes
+var mode = args.Length > 0 ? args[0].ToLower() : "normal";
+bool spamMode = mode == "spam";
+bool outlierMode = mode == "outlier";
+Console.WriteLine($"[MODE] Sensor running in {mode.ToUpper()} mode.");
+
+var sensorId = Guid.NewGuid();
+
+using var sensorRsa = RSA.Create(2048);
+var sensorPublicKeyPem = sensorRsa.ExportSubjectPublicKeyInfoPem();
+var serverPublicKeyPath = Path.GetFullPath(Path.Combine("src", "IngestionService", "keys", "server_public.pem"));
+if (!File.Exists(serverPublicKeyPath))
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine($"[ERROR] Server public key not found at: {serverPublicKeyPath}");
+    Console.WriteLine("[INFO] Start IngestionService first so it can generate server keys.");
+    Console.ResetColor();
+    return;
+}
+using var serverPublicKey = RsaKeyUtils.CreateFromPublicKeyPem(File.ReadAllText(serverPublicKeyPath));
+
+double minValue = random.Next(-20, 0);
+double maxValue = random.Next(50, 100);
+
+double range = maxValue - minValue;
+double yellowThresholdHigh = minValue + (range * 0.70);
+double yellowThresholdLow = maxValue - (range * 0.70);
+double orangeThresholdHigh = minValue + (range * 0.85);
+double orangeThresholdLow = maxValue - (range * 0.85);
+double redThresholdHigh = minValue + (range * 0.95);
+double redThresholdLow = maxValue - (range * 0.95);
+
+Console.WriteLine($"=== Sensor {sensorId} initialized ===");
+Console.WriteLine($"Value range: {minValue}°C to {maxValue}°C");
+Console.WriteLine($"Threshold: Yellow(<{Math.Round(yellowThresholdLow, 1)} or >{Math.Round(yellowThresholdHigh, 1)})," +
+    $" Orange(<{Math.Round(orangeThresholdLow, 1)} or >{Math.Round(orangeThresholdHigh, 1)})," +
+    $" Red(<{Math.Round(redThresholdLow, 1)} or >{Math.Round(redThresholdHigh, 1)})");
+
+
+var serverUrl = Environment.GetEnvironmentVariable("INGESTION_URL") ?? "http://localhost:5128";
+using var httpClient = new HttpClient();
+httpClient.BaseAddress = new Uri(serverUrl);
+
+httpClient.DefaultRequestHeaders.Add("X-Sensor-Id", sensorId.ToString());
+
+long messageCounter = 1;
+
+var registerDto = new SensorRegisterDTO
+{
+    Id = sensorId,
+    MinValue = minValue,
+    MaxValue = maxValue,
+    Quality = SensorQuality.GOOD,
+    PublicKey = sensorPublicKeyPem
+};
+
+Console.WriteLine($"[REGISTRATION] Attempting sensor registration: {sensorId}");
+
+var secureRegisterDto = CryptoEnvelopeService.Protect(
+    registerDto,
+    sensorId,
+    sensorRsa,
+    serverPublicKey,
+    sensorPublicKeyPem);
+
+while (true)
+{
+    try
+    {
+        var regResponse = await httpClient.PostAsJsonAsync(
+            "/api/sensors/secure",
+            secureRegisterDto);
+
+        if (regResponse.IsSuccessStatusCode)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("[SUCCESS] Sensor is successfully registered!");
+            Console.ResetColor();
+            break;
+        }
+
+        var error = await regResponse.Content.ReadAsStringAsync();
+
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"[REGISTRATION] Registration failed ({regResponse.StatusCode}). Retrying in 5 seconds...");
+        Console.WriteLine(error);
+        Console.ResetColor();
+    }
+    catch (Exception ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"[REGISTRATION] Ingestion unavailable. Retrying in 5 seconds...");
+        Console.WriteLine(ex.Message);
+        Console.ResetColor();
+    }
+
+    await Task.Delay(5000);
+}
+
+Console.WriteLine("[SUCCESS] Sensor is successfuly registered! Initiating telemetry sending...\n");
+
+while (true)
+{
+    double currentTemp;
+
+    if (outlierMode)
+    {
+        currentTemp = minValue + (random.NextDouble() * range) + 100;   // Extreme outlier value
+    }
+    else
+    {
+        currentTemp = minValue + (random.NextDouble() * range);
+    }
+
+    int priority = 0;
+    if (currentTemp < redThresholdLow || currentTemp > redThresholdHigh) priority = 3;
+    else if (currentTemp < orangeThresholdLow || currentTemp > orangeThresholdHigh) priority = 2;
+    else if (currentTemp < yellowThresholdLow || currentTemp > yellowThresholdHigh) priority = 1;
+
+    var metricDto = new MetricSubmissionDTO
+    {
+        MessageId = messageCounter++,
+        SensorId = sensorId,
+        Value = Math.Round(currentTemp, 2),
+        Timestamp = DateTime.UtcNow,
+        Priority = priority
+    };
+
+    try
+    {
+        var secureMetricDto = CryptoEnvelopeService.Protect(
+            metricDto,
+            sensorId,
+            sensorRsa,
+            serverPublicKey);
+
+        var response = await httpClient.PostAsJsonAsync("/api/metrics/secure", secureMetricDto);
+
+        if ((int)response.StatusCode == 429)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [LIMIT] Too many request! Pausing telemetry for 5 seconds...");
+            Console.ResetColor();
+
+            await Task.Delay(5000);
+            continue;
+        }
+
+        if ((int)response.StatusCode == 403)
+        {
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [BLOCKED] Server has denied access (Quarantine).");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [HIBERNATION] Pausing telemetry for 30 seconds...");
+            Console.ResetColor();
+
+            await Task.Delay(30000);
+            continue;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [Error] Denied from server, status: {response.StatusCode}");
+            Console.ResetColor();
+
+            await Task.Delay(3000);
+            continue;
+        }
+
+        Console.ForegroundColor = priority switch
+        {
+            3 => ConsoleColor.Red,
+            2 => ConsoleColor.DarkYellow,
+            1 => ConsoleColor.Yellow,
+            _ => ConsoleColor.Green
+        };
+
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] MSG: {metricDto.MessageId} | TEMP: {metricDto.Value}°C | PRIORITY: {priority}");
+        Console.ResetColor();
+    }
+    catch (Exception ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Gray;
+        Console.WriteLine($"Error while sending: {ex.Message}");
+        await Task.Delay(5000);
+        continue;
+    }
+
+    Console.ResetColor();
+
+    int delay = spamMode ? 50 : random.Next(1000, 10001);   //50ms in spam mode
+    await Task.Delay(delay);
+}

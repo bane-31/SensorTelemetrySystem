@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingestion-api
+  template:
+    metadata:
+      labels:
+        app: ingestion-api
+    spec:
+      volumes:
+        - name: rsa-keys
+          secret:
+            secretName: rsa-keys
+
+      containers:
+        - name: ingestion-api
+          image: ingestion-service:latest
+          imagePullPolicy: Never
+
+          volumeMounts:
+            - name: rsa-keys
+              mountPath: /app/keys
+              readOnly: true
+
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=postgres-service;Port=5432;Database=sensordb;Username=admin;Password=password"
+            - name: NOTIFICATION_URL
+              value: "http://notification-service:5112"
+
+          ports:
+            - containerPort: 5128
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingestion-service
+spec:
+  type: ClusterIP
+  selector:
+    app: ingestion-api
+  ports:
+    - protocol: TCP
+      port: 5128
+      targetPort: 5128
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-api
+  template:
+    metadata:
+      labels:
+        app: notification-api
+    spec:
+      containers:
+        - name: notification-api
+          image: notification-service:latest
+          imagePullPolicy: Never
+
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+
+          ports:
+            - containerPort: 5112
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+spec:
+  type: ClusterIP
+  selector:
+    app: notification-api
+  ports:
+    - protocol: TCP
+      port: 5112
+      targetPort: 5112
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consensus-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consensus-worker
+  template:
+    metadata:
+      labels:
+        app: consensus-worker
+    spec:
+      containers:
+        - name: consensus-worker
+          image: consensus-service:latest
+          imagePullPolicy: Never
+
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=postgres-service;Port=5432;Database=sensordb;Username=admin;Password=password"
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
